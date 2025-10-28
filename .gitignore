@@ -1,0 +1,22 @@
+# Ignore system & cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Ignore Streamlit cache
+.streamlit/
+
+# Ignore uploads & test data
+uploads/
+!uploads/.keep   # keep empty folder placeholder if needed
+
+# Ignore virtual environment
+venv/
+env/
+
+# Ignore VSCode & OS files
+.vscode/
+.DS_Store
+Thumbs.db

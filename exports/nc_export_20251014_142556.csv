@@ -1,0 +1,3 @@
+NC_ID,Model,Date,Component_No_or_Sl_No,Type_of_NC,Failure_Description,Test_Stage,Action_Plan_Advised,Action_Taken,Responsible_Person,Target_Closure_Date,Closure_Status,Closure_Date,Attachments,Created_At,Updated_At
+NC-2025-0001,1110FM,2025-10-14,1234,Winding Resistance,UV= 3.81 & VW= 3.67 variation not ok,Testing,Rewinding or checking for damage,,Rama,2025-10-21,Pending,,,2025-10-14 13:56:12,2025-10-14 13:56:12
+NC-2025-0002,1205D,2025-10-14,1234,Winding Resistance,Hv faila at 2.0 kv,Testing,Rebaking,,Dhanush,2025-10-17,Pending,,,2025-10-14 14:00:06,2025-10-14 14:00:06
