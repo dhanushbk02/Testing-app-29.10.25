@@ -46,25 +46,56 @@ st.set_page_config(page_title="Instrument Details", page_icon="🧰", layout="wi
 # =========================
 APP_ROOT = Path(__file__).resolve().parents[1]   # folder that contains /pages
 DB_PATH = APP_ROOT / "database" / "instruments.db"
-UPLOAD_ROOT = APP_ROOT / "uploads" / "cal_certificates"
-IMPORTS_DIR = APP_ROOT / "database" / "imports"
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
-IMPORTS_DIR.mkdir(parents=True, exist_ok=True)
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import streamlit as st
 
-# Exact Excel (your file lives in database/imports)
-EXCEL_FILE = IMPORTS_DIR / "Calibration_Calender_20251013_205701.xlsx"
+# Load credentials from Streamlit secrets
+SERVICE_ACCOUNT_INFO = st.secrets["gcp_service_account"]
+FOLDER_ID = st.secrets["gdrive"]["folder_id"]
 
-TODAY = date.today()
+# Create Drive service
+creds = service_account.Credentials.from_service_account_info(
+    SERVICE_ACCOUNT_INFO,
+    scopes=["https://www.googleapis.com/auth/drive.readonly"]
+)
+drive_service = build("drive", "v3", credentials=creds)
 
-# =========================
-# DB helpers
-# =========================
-def get_connection():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA foreign_keys=ON;")
-    return conn
+def list_drive_pdfs(subfolder_name: str):
+    """List PDF files inside a specific subfolder in Google Drive."""
+    results = (
+        drive_service.files()
+        .list(
+            q=f"'{FOLDER_ID}' in parents and name='{subfolder_name}' and mimeType='application/vnd.google-apps.folder'",
+            fields="files(id, name)",
+        )
+        .execute()
+    )
+    folders = results.get("files", [])
+    if not folders:
+        return pd.DataFrame(columns=["instrument_id", "filename", "webViewLink"])
+
+    subfolder_id = folders[0]["id"]
+    results = (
+        drive_service.files()
+        .list(
+            q=f"'{subfolder_id}' in parents and mimeType='application/pdf'",
+            fields="files(id, name, webViewLink, modifiedTime)",
+        )
+        .execute()
+    )
+    files = results.get("files", [])
+    return pd.DataFrame(
+        [
+            {
+                "instrument_id": subfolder_name,
+                "filename": f["name"],
+                "webViewLink": f["webViewLink"],
+                "modified_at": f["modifiedTime"],
+            }
+            for f in files
+        ]
+    )
 
 def discover_calibration_pdfs(root: Path):
     """
