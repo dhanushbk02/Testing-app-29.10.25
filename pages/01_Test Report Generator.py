@@ -6,7 +6,7 @@ import os
 st.set_page_config(page_title="Test Report Generator", page_icon="🧾", layout="wide")
 
 # 👇 Correct path to your generator
-GEN_PATH = Path(__file__).resolve().parents[1] / "Test-Report-Generator" / "app_streamlit4.py"
+GEN_PATH = Path(__file__).resolve().parents[1] / "TestReportGenerator" / "app_streamlit4.py"
 GEN_DIR = GEN_PATH.parent
 
 st.title("🧾 Test Report Generator")
