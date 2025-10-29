@@ -560,24 +560,33 @@ with right_col:
                 if pd.notna(cal_date) and str(cal_date).lower() != "nat":
                     st.markdown(f"**Calibration Date:** {cal_date}")
 
-            # --- Auto-detect calibration PDFs ---
-            pdf_df = discover_calibration_pdfs(UPLOAD_ROOT)
-            if pdf_df.empty:
-                st.info("No calibration reports found in uploads/cal_certificates.")
-            else:
-                def normalize_id(s):
-                    if not isinstance(s, str):
-                        return ""
-                    return s.lower().replace("-", "").replace("_", "").strip()
+# --- Fetch calibration PDFs from Google Drive ---
+pdf_df = list_drive_pdfs(instr_choice)
 
-                match_df = pdf_df[pdf_df["instrument_id"].apply(normalize_id) == normalize_id(instr_choice)]
-                if match_df.empty:
-                    match_df = pdf_df[pdf_df["filename"].str.lower().str.contains(normalize_id(instr_choice))]
+if pdf_df.empty:
+    st.info(f"No calibration reports found in Google Drive for Instrument ID **{instr_choice}**.")
+else:
+    st.success(f"Found {len(pdf_df)} calibration report(s):")
 
-                if match_df.empty:
-                    st.warning(f"No calibration report found for Instrument ID **{instr_choice}**.")
-                else:
-                    st.success(f"Found {len(match_df)} calibration report(s):")
+    for _, row in pdf_df.iterrows():
+        file_link = row["webViewLink"]
+        st.markdown(
+            f"**📄 {row['filename']}**  "
+            f"*(last modified: {row['modified_at'][:10]})*  "
+            f"[🔗 Open in Drive]({file_link})"
+        )
+
+        # Inline PDF preview (using Google Drive embedded viewer)
+        components.html(
+            f"""
+            <iframe src="https://drive.google.com/file/d/{row['webViewLink'].split('=')[1]}/preview"
+                    width="100%" height="600px"
+                    style="border: 1px solid #ccc; border-radius: 8px;">
+            </iframe>
+            """,
+            height=620,
+        )
+        st.divider()
 
                     # --- Show PDF previews + download buttons ---
                     for _, row in match_df.iterrows():
