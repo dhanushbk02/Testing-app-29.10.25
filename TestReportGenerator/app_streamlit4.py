@@ -17,8 +17,8 @@ from datetime import date
 
 # --- Page setup ---
 # ✅ Only run set_page_config if this file is the main entry
-if __name__ == "__main__" or "streamlit" not in sys.modules:
-    st.set_page_config(page_title="Pump Test Results", layout="wide", page_icon="💧")
+#if __name__ == "__main__" or "streamlit" not in sys.modules:
+    #st.set_page_config(page_title="Pump Test Results", layout="wide", page_icon="💧")
 
 # --- Compatibility patch for old Streamlit versions ---
 if not hasattr(st, "data_editor"):
