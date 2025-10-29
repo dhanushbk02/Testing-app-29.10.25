@@ -14,12 +14,15 @@ import tempfile
 import os
 import sys
 from datetime import date
+
 # --- Page setup ---
-st.set_page_config(page_title="Pump Test Results", layout="wide", page_icon="💧")
+# ✅ Only run set_page_config if this file is the main entry
+if __name__ == "__main__" or "streamlit" not in sys.modules:
+    st.set_page_config(page_title="Pump Test Results", layout="wide", page_icon="💧")
+
 # --- Compatibility patch for old Streamlit versions ---
 if not hasattr(st, "data_editor"):
     st.data_editor = st.experimental_data_editor
-
 
 # --- Company Header ---
 col_logo, col_title = st.columns([2, 6])
