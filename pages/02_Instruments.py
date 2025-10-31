@@ -13,7 +13,22 @@ import streamlit.components.v1 as components
 from typing import List, Optional
 from datetime import date, timedelta
 import pandas as pd
+import sqlite3
+from contextlib import contextmanager
+from pathlib import Path
 
+# --- Database path ---
+DB_PATH = Path(__file__).resolve().parents[1] / "instrument.db"
+
+@contextmanager
+def get_connection():
+    """Context manager for SQLite DB connection."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        yield conn
+    finally:
+        conn.close()
+        
 def is_valid_date(d):
     """Return a clean datetime.date if valid, else None."""
     if pd.isna(d):
