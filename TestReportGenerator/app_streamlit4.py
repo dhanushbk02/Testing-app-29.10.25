@@ -1592,47 +1592,67 @@ decimals_for_export = int(st.session_state.get("round_decimals", 3))
 # ==========================================================
 # 🧾 Test Report Generation + Google Drive Upload
 # ==========================================================
-from google.oauth2 import service_account
+import io
+import streamlit as st
 from googleapiclient.discovery import build
+from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseUpload
 
-def upload_to_drive(file_bytes: BytesIO, filename: str):
-    st.write("🪵 Step 1: Entered upload_to_drive()")
-
+def upload_to_drive(file_data, file_name):
+    """Uploads the given BytesIO file to Google Drive and returns a shareable link."""
     try:
-        st.write("🪵 Step 2: Loading credentials from st.secrets...")
+        st.write("🧠 Step 1: Starting upload_to_drive()")
+
+        # Load credentials from Streamlit secrets
+        creds_info = st.secrets["gcp_service_account"]
+        folder_id = st.secrets["gdrive"]["folder_id"]
+        st.write("✅ Secrets loaded successfully")
+
+        # Create credentials
         creds = service_account.Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
+            creds_info,
             scopes=["https://www.googleapis.com/auth/drive.file"]
         )
+        st.write("✅ Credentials object created")
 
-        st.write("🪵 Step 3: Building Drive service...")
+        # Build the Drive service
         service = build("drive", "v3", credentials=creds)
+        st.write("✅ Google Drive API client built")
 
-        st.write("🪵 Step 4: Preparing upload metadata...")
-        folder_id = st.secrets["gdrive"]["folder_id"]
-        st.write(f"📁 Folder ID = {folder_id}")
+        # Define metadata and media
+        file_metadata = {"name": file_name, "parents": [folder_id]}
+        media = MediaIoBaseUpload(file_data, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-        file_metadata = {"name": filename, "parents": [folder_id]}
-        file_bytes.seek(0)
-        media = MediaIoBaseUpload(
-            file_bytes,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        st.write(f"📤 Uploading file '{file_name}' to folder {folder_id}...")
 
-        st.write("🪵 Step 5: Uploading file...")
-        uploaded = service.files().create(
+        # Upload the file
+        uploaded_file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields="id, webViewLink"
+            fields="id"
         ).execute()
 
-        st.write("🪵 Step 6: Upload successful ✅")
-        return uploaded.get("webViewLink")
+        file_id = uploaded_file.get("id")
+        st.write(f"✅ File uploaded successfully with ID: {file_id}")
+
+        # Make the file shareable
+        service.permissions().create(
+            fileId=file_id,
+            body={"role": "reader", "type": "anyone"}
+        ).execute()
+        st.write("🌍 File permissions updated for public link")
+
+        file_link = f"https://drive.google.com/file/d/{file_id}/view?usp=sharing"
+        st.success(f"✅ File uploaded: [Open in Drive]({file_link})")
+
+        return file_link
 
     except Exception as e:
         st.error(f"❌ Upload failed: {e}")
+        import traceback
+        st.code(traceback.format_exc())
         return None
+
 
 
 # ==========================================================
