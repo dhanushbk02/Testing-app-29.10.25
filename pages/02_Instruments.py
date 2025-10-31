@@ -588,38 +588,39 @@ else:
         )
         st.divider()
 
-                    # --- Show PDF previews + download buttons ---
-                    for _, row in match_df.iterrows():
-                        pdf_path = os.path.join(UPLOAD_ROOT, row["filename"])
-                        with open(pdf_path, "rb") as f:
-                            pdf_bytes = f.read()
+    # --- Show PDF previews + download buttons ---
+    for _, row in match_df.iterrows():
+        pdf_path = os.path.join(UPLOAD_ROOT, row["filename"])
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
 
-                        st.markdown(
-                            f"**📄 {row['filename']}**  "
-                            f"*(last modified: {row['modified_at'].strftime('%d-%b-%Y %H:%M')})*"
-                        )
-                        # PDF preview (full width)
-                        st.components.v1.html(
-                            f"""
-                            <iframe src="data:application/pdf;base64,{base64.b64encode(pdf_bytes).decode()}" 
-                                    width="100%" height="600px" 
-                                    style="border: 1px solid #ccc; border-radius: 8px;">
-                            </iframe>
-                            """,
-                            height=620,
-                        )
+        st.markdown(
+            f"**📄 {row['filename']}**  "
+            f"*(last modified: {row['modified_at'].strftime('%d-%b-%Y %H:%M')})*"
+        )
 
-                        # Download button
-                        st.download_button(
-                            label=f"⬇ Download {row['filename']}",
-                            data=pdf_bytes,
-                            file_name=row["filename"],
-                            mime="application/pdf",
-                            use_container_width=True,
-                        )
-                        st.divider()
-        else:
-            st.info("Select an Instrument ID to view its auto-detected calibration reports.")
+        # PDF preview (full width)
+        st.components.v1.html(
+            f"""
+            <iframe src="data:application/pdf;base64,{base64.b64encode(pdf_bytes).decode()}" 
+                    width="100%" height="600px" 
+                    style="border: 1px solid #ccc; border-radius: 8px;">
+            </iframe>
+            """,
+            height=620,
+        )
+
+        # Download button
+        st.download_button(
+            label=f"⬇ Download {row['filename']}",
+            data=pdf_bytes,
+            file_name=row["filename"],
+            mime="application/pdf",
+            use_container_width=True,
+        )
+        st.divider()
+else:
+    st.info("Select an Instrument ID to view its auto-detected calibration reports.")
 
 # =========================
 # Footer
