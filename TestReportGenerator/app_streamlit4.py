@@ -1589,6 +1589,54 @@ metadata_safe = {
 perf_for_export = st.session_state.get("perf_df", perf_df if 'perf_df' in globals() else pd.DataFrame())
 decimals_for_export = int(st.session_state.get("round_decimals", 3))
 
+# ==========================================================
+# 🔰 Test Report Generation + Upload to Google Drive (st.secrets version)
+# ==========================================================
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+
+
+def upload_to_drive(file_bytes: BytesIO, filename: str):
+    """Uploads the generated Excel report to Google Drive using credentials in st.secrets."""
+    try:
+        # --- Load credentials directly from Streamlit secrets ---
+        creds = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=["https://www.googleapis.com/auth/drive.file"]
+        )
+
+        # --- Build the Drive service ---
+        service = build("drive", "v3", credentials=creds)
+
+        # --- Define metadata and upload target ---
+        folder_id = st.secrets["gdrive"]["folder_id"]
+        file_metadata = {"name": filename, "parents": [folder_id]}
+        media = MediaIoBaseUpload(
+            file_bytes,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        # --- Upload file ---
+        uploaded = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id, webViewLink"
+        ).execute()
+
+        return uploaded.get("webViewLink")
+
+    except Exception as e:
+        st.error(f"❌ Google Drive upload failed: {e}")
+        return None
+
+
+# ----------------------------
+#  Generate and Export Buttons
+# ----------------------------
+st.markdown("---")
+st.subheader("Generate Certificate (from Template)")
+
 if st.button("Generate Test Report (.xlsx)"):
     try:
         out_bio = generate_certificate_from_template_bytes(
@@ -1597,17 +1645,28 @@ if st.button("Generate Test Report (.xlsx)"):
             perf_for_export,
             decimals=decimals_for_export
         )
+
         fname = f"{metadata_safe.get('comp_no', 'NA')}_TestReport_{metadata_safe.get('type', 'Model')}.xlsx"
+
+        # --- Local download button ---
         st.download_button(
-            "Download Test Report (.xlsx)",
+            "⬇️ Download Test Report (.xlsx)",
             data=out_bio,
             file_name=fname,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        st.success("✅ Test Report created successfully (ready to download).")
+
+        # --- Upload to Drive button ---
+        st.markdown("### ☁️ Upload to Google Drive")
+        if st.button("Upload to Drive"):
+            drive_link = upload_to_drive(out_bio, fname)
+            if drive_link:
+                st.success(f"✅ Uploaded successfully! [Open in Google Drive]({drive_link})")
+
     except FileNotFoundError:
         st.error(f"Template not found at {TEMPLATE_PATH}. Please ensure Certificate_Template.xlsx exists.")
     except Exception as e:
         st.error(f"Failed to generate report: {e}")
+
 
 
