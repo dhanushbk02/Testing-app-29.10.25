@@ -1600,18 +1600,22 @@ from googleapiclient.http import MediaIoBaseUpload
 def upload_to_drive(file_bytes: BytesIO, filename: str):
     """Uploads the generated Excel report to Google Drive using credentials in st.secrets."""
     try:
-        st.info("🔹 Connecting to Google Drive...")
+        st.info("🪵 Step 1: Entered upload_to_drive()")
 
         creds = service_account.Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
             scopes=["https://www.googleapis.com/auth/drive.file"]
         )
+        st.write("🪵 Step 2: Credentials loaded")
 
         service = build("drive", "v3", credentials=creds)
-        st.success("✅ Connected to Google Drive API")
+        st.write("🪵 Step 3: Drive service built successfully")
 
         folder_id = st.secrets["gdrive"]["folder_id"]
-        st.write(f"Target Folder ID: {folder_id}")
+        st.write(f"🪵 Step 4: Target folder ID = {folder_id}")
+
+        # Reset file pointer before upload
+        file_bytes.seek(0)
 
         file_metadata = {"name": filename, "parents": [folder_id]}
         media = MediaIoBaseUpload(
@@ -1619,21 +1623,26 @@ def upload_to_drive(file_bytes: BytesIO, filename: str):
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+        st.write("🪵 Step 5: Starting upload...")
+
         uploaded = service.files().create(
             body=file_metadata,
             media_body=media,
             fields="id, webViewLink"
         ).execute()
 
-        st.success(f"✅ Uploaded: {filename}")
+        st.success(f"✅ Step 6: Uploaded successfully — {filename}")
         st.write(uploaded)
+
         return uploaded.get("webViewLink")
 
     except Exception as e:
         st.error(f"❌ Google Drive upload failed: {e}")
         return None
+if st.button("Upload to Drive"):
+    drive_link = upload_to_drive(out_bio, fname)
 
-
+st.write("🪵 Upload button clicked — calling upload_to_drive()")
 
 # ----------------------------
 #  Generate and Export Buttons
