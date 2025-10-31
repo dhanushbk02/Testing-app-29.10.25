@@ -1600,35 +1600,39 @@ from googleapiclient.http import MediaIoBaseUpload
 def upload_to_drive(file_bytes: BytesIO, filename: str):
     """Uploads the generated Excel report to Google Drive using credentials in st.secrets."""
     try:
-        # --- Load credentials directly from Streamlit secrets ---
+        st.info("🔹 Connecting to Google Drive...")
+
         creds = service_account.Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
             scopes=["https://www.googleapis.com/auth/drive.file"]
         )
 
-        # --- Build the Drive service ---
         service = build("drive", "v3", credentials=creds)
+        st.success("✅ Connected to Google Drive API")
 
-        # --- Define metadata and upload target ---
         folder_id = st.secrets["gdrive"]["folder_id"]
+        st.write(f"Target Folder ID: {folder_id}")
+
         file_metadata = {"name": filename, "parents": [folder_id]}
         media = MediaIoBaseUpload(
             file_bytes,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        # --- Upload file ---
         uploaded = service.files().create(
             body=file_metadata,
             media_body=media,
             fields="id, webViewLink"
         ).execute()
 
+        st.success(f"✅ Uploaded: {filename}")
+        st.write(uploaded)
         return uploaded.get("webViewLink")
 
     except Exception as e:
         st.error(f"❌ Google Drive upload failed: {e}")
         return None
+
 
 
 # ----------------------------
