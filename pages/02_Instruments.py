@@ -570,6 +570,7 @@ else:
 
     for _, row in pdf_df.iterrows():
         file_link = row["webViewLink"]
+
         st.markdown(
             f"**📄 {row['filename']}**  "
             f"*(last modified: {row['modified_at'][:10]})*  "
@@ -579,7 +580,7 @@ else:
         # Inline PDF preview (using Google Drive embedded viewer)
         components.html(
             f"""
-            <iframe src="https://drive.google.com/file/d/{row['webViewLink'].split('=')[1]}/preview"
+            <iframe src="https://drive.google.com/file/d/{file_link.split('=')[1]}/preview"
                     width="100%" height="600px"
                     style="border: 1px solid #ccc; border-radius: 8px;">
             </iframe>
@@ -587,7 +588,7 @@ else:
             height=620,
         )
         st.divider()
-
+        
     # --- Show PDF previews + download buttons ---
     for _, row in match_df.iterrows():
         pdf_path = os.path.join(UPLOAD_ROOT, row["filename"])
