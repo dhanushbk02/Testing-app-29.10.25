@@ -9,7 +9,7 @@ st.set_page_config(page_title="Test Report Generator", page_icon="🧾", layout=
 GEN_PATH = Path(__file__).resolve().parents[1] / "TestReportGenerator" / "app_streamlit4.py"
 GEN_DIR = GEN_PATH.parent
 
-st.title("🧾 Test Report Generator")
+#st.title("🧾 Test Report Generator")
 st.caption(f"Launching from: {GEN_PATH}")
 
 if GEN_PATH.exists():
