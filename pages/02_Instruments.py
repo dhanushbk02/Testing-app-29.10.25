@@ -28,7 +28,7 @@ def get_connection():
         yield conn
     finally:
         conn.close()
-        
+
 def is_valid_date(d):
     """Return a clean datetime.date if valid, else None."""
     if pd.isna(d):
@@ -389,6 +389,13 @@ init_db()
 # =========================
 st.title("🧰 Instrument Details")
 st.caption("Excel is read directly from /database/imports with header at row 2. The table renders exactly like your sheet.")
+
+# --- Define paths for Excel imports ---
+from pathlib import Path
+
+APP_ROOT = Path(__file__).resolve().parents[1]
+IMPORTS_DIR = APP_ROOT / "database" / "imports"
+EXCEL_FILE = IMPORTS_DIR / "Calibration_Calender_20251013_205701.xlsx"
 
 # Diagnostics
 st.caption(f"Looking for Excel at: `{EXCEL_FILE}`")
