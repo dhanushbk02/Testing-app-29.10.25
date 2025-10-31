@@ -1597,15 +1597,21 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 def upload_to_drive(file_bytes: BytesIO, filename: str):
-    """Uploads the generated Excel report to Google Drive using st.secrets."""
+    st.write("🪵 Step 1: Entered upload_to_drive()")
+
     try:
+        st.write("🪵 Step 2: Loading credentials from st.secrets...")
         creds = service_account.Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
             scopes=["https://www.googleapis.com/auth/drive.file"]
         )
 
+        st.write("🪵 Step 3: Building Drive service...")
         service = build("drive", "v3", credentials=creds)
+
+        st.write("🪵 Step 4: Preparing upload metadata...")
         folder_id = st.secrets["gdrive"]["folder_id"]
+        st.write(f"📁 Folder ID = {folder_id}")
 
         file_metadata = {"name": filename, "parents": [folder_id]}
         file_bytes.seek(0)
@@ -1614,12 +1620,14 @@ def upload_to_drive(file_bytes: BytesIO, filename: str):
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+        st.write("🪵 Step 5: Uploading file...")
         uploaded = service.files().create(
             body=file_metadata,
             media_body=media,
             fields="id, webViewLink"
         ).execute()
 
+        st.write("🪵 Step 6: Upload successful ✅")
         return uploaded.get("webViewLink")
 
     except Exception as e:
