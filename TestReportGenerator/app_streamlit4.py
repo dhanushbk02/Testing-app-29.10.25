@@ -1590,40 +1590,29 @@ perf_for_export = st.session_state.get("perf_df", perf_df if 'perf_df' in global
 decimals_for_export = int(st.session_state.get("round_decimals", 3))
 
 # ==========================================================
-# 🔰 Test Report Generation + Upload to Google Drive (st.secrets version)
+# 🧾 Test Report Generation + Google Drive Upload
 # ==========================================================
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
-
 def upload_to_drive(file_bytes: BytesIO, filename: str):
-    """Uploads the generated Excel report to Google Drive using credentials in st.secrets."""
+    """Uploads the generated Excel report to Google Drive using st.secrets."""
     try:
-        st.info("🪵 Step 1: Entered upload_to_drive()")
-
         creds = service_account.Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
             scopes=["https://www.googleapis.com/auth/drive.file"]
         )
-        st.write("🪵 Step 2: Credentials loaded")
 
         service = build("drive", "v3", credentials=creds)
-        st.write("🪵 Step 3: Drive service built successfully")
-
         folder_id = st.secrets["gdrive"]["folder_id"]
-        st.write(f"🪵 Step 4: Target folder ID = {folder_id}")
-
-        # Reset file pointer before upload
-        file_bytes.seek(0)
 
         file_metadata = {"name": filename, "parents": [folder_id]}
+        file_bytes.seek(0)
         media = MediaIoBaseUpload(
             file_bytes,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
-        st.write("🪵 Step 5: Starting upload...")
 
         uploaded = service.files().create(
             body=file_metadata,
@@ -1631,26 +1620,23 @@ def upload_to_drive(file_bytes: BytesIO, filename: str):
             fields="id, webViewLink"
         ).execute()
 
-        st.success(f"✅ Step 6: Uploaded successfully — {filename}")
-        st.write(uploaded)
-
         return uploaded.get("webViewLink")
 
     except Exception as e:
-        st.error(f"❌ Google Drive upload failed: {e}")
+        st.error(f"❌ Upload failed: {e}")
         return None
-if st.button("Upload to Drive"):
-    drive_link = upload_to_drive(out_bio, fname)
 
-st.write("🪵 Upload button clicked — calling upload_to_drive()")
 
-# ----------------------------
-#  Generate and Export Buttons
-# ----------------------------
-st.markdown("---")
-st.subheader("Generate Certificate (from Template)")
+# ==========================================================
+# 🎯 UI Controls
+# ==========================================================
+st.subheader("Test Report Actions")
 
-if st.button("Generate Test Report (.xlsx)"):
+out_bio = None
+fname = f"{metadata_safe.get('comp_no', 'NA')}_TestReport_{metadata_safe.get('type', 'Model')}.xlsx"
+
+# --- Generate Excel ---
+if st.button("🧾 Generate Excel", key="generate_excel"):
     try:
         out_bio = generate_certificate_from_template_bytes(
             TEMPLATE_PATH,
@@ -1658,28 +1644,24 @@ if st.button("Generate Test Report (.xlsx)"):
             perf_for_export,
             decimals=decimals_for_export
         )
-
-        fname = f"{metadata_safe.get('comp_no', 'NA')}_TestReport_{metadata_safe.get('type', 'Model')}.xlsx"
-
-        # --- Local download button ---
-        st.download_button(
-            "⬇️ Download Test Report (.xlsx)",
-            data=out_bio,
-            file_name=fname,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-        # --- Upload to Drive button ---
-        st.markdown("### ☁️ Upload to Google Drive")
-        if st.button("Upload to Drive"):
-            drive_link = upload_to_drive(out_bio, fname)
-            if drive_link:
-                st.success(f"✅ Uploaded successfully! [Open in Google Drive]({drive_link})")
-
-    except FileNotFoundError:
-        st.error(f"Template not found at {TEMPLATE_PATH}. Please ensure Certificate_Template.xlsx exists.")
+        st.success("✅ Excel report generated successfully!")
     except Exception as e:
         st.error(f"Failed to generate report: {e}")
 
+# --- Upload to Drive ---
+if out_bio and st.button("☁️ Upload to Google Drive", key="upload_drive"):
+    drive_link = upload_to_drive(out_bio, fname)
+    if drive_link:
+        st.success(f"✅ Uploaded successfully! [Open in Google Drive]({drive_link})")
+
+# --- Download ---
+if out_bio:
+    st.download_button(
+        "⬇️ Download Report (.xlsx)",
+        data=out_bio,
+        file_name=fname,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download_excel"
+    )
 
 
