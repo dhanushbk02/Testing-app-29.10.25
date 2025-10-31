@@ -1589,23 +1589,22 @@ metadata_safe = {
 perf_for_export = st.session_state.get("perf_df", perf_df if 'perf_df' in globals() else pd.DataFrame())
 decimals_for_export = int(st.session_state.get("round_decimals", 3))
 
-# ==========================================================
-# 🔰 Test Report Generation + Upload to Google Drive
-# ==========================================================
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
-
-def upload_to_drive(...):
-    ...
-# ----------------------------
-#  Generate and Export Buttons
-# ----------------------------
-st.markdown("---")
-st.subheader("Generate Certificate (from Template)")
-
 if st.button("Generate Test Report (.xlsx)"):
-    ...
+    try:
+        out_bio = generate_certificate_from_template_bytes(
+            TEMPLATE_PATH,
+            metadata_safe,
+            perf_for_export,
+            decimals=decimals_for_export
+        )
+        fname = f"{metadata_safe.get('comp_no', 'NA')}_TestReport_{metadata_safe.get('type', 'Model')}.xlsx"
+        st.download_button(
+            "Download Test Report (.xlsx)",
+            data=out_bio,
+            file_name=fname,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        st.success("✅ Test Report created successfully (ready to download).")
     except FileNotFoundError:
         st.error(f"Template not found at {TEMPLATE_PATH}. Please ensure Certificate_Template.xlsx exists.")
     except Exception as e:
