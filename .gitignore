@@ -22,3 +22,12 @@ env/
 Thumbs.db
 
 service_account.json
+# Sensitive credentials
+service_account.json
+secrets.toml
+token.pkl
+credentials.json
+
+# Streamlit cache
+.streamlit/
+__pycache__/
