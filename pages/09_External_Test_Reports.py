@@ -1,9 +1,9 @@
 # ============================================================
-# 🧾 External Test Reports Page (Service Account - Deployable)
+# 🧾 External Test Reports Page (Streamlit Cloud Deployable)
 # Author: Dhanush BK | Flow Oil Pumps Pvt. Ltd.
 # Purpose: Upload & view external test reports
 # Storage: Google Drive (Testing-app-uploads/External Reports)
-# Deployable: Yes (Streamlit Cloud Ready, Uses secrets.toml)
+# Auth: Service Account (via secrets.toml)
 # ============================================================
 
 import streamlit as st
@@ -15,14 +15,14 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 # ------------------------------------------------------------
-# 🔐 Google Drive Setup (From secrets.toml)
+# 🔐 Google Drive Setup
 # ------------------------------------------------------------
 try:
     SERVICE_ACCOUNT = st.secrets["gcp_service_account"]
     GDRIVE = st.secrets["gdrive"]
     PARENT_FOLDER_ID = GDRIVE.get("folder_id")
 except Exception as e:
-    st.error("⚠️ Google Drive configuration not found in secrets.toml.")
+    st.error("⚠️ Google Drive credentials missing in secrets.toml.")
     st.stop()
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
@@ -43,7 +43,7 @@ MODEL_FILE_NAME = "List of models for page8.xlsx"
 # 🧰 Helper Functions
 # ------------------------------------------------------------
 def get_folder_id(folder_name, parent_id):
-    """Find the folder ID under the given parent folder."""
+    """Find folder ID by name under the parent folder."""
     query = (
         f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' "
         f"and '{parent_id}' in parents and trashed=false"
@@ -66,7 +66,7 @@ external_reports_id = get_folder_id(EXTERNAL_REPORTS_NAME, PARENT_FOLDER_ID)
 # 📘 Load Pump Model List
 # ------------------------------------------------------------
 def get_model_list():
-    """Read Excel file containing pump model list from Drive."""
+    """Fetch Excel model list from Google Drive."""
     query = f"name='{MODEL_FILE_NAME}' and '{PARENT_FOLDER_ID}' in parents and trashed=false"
     results = drive_service.files().list(
         q=query,
@@ -88,7 +88,7 @@ def get_model_list():
 # 📤 Upload File to Drive
 # ------------------------------------------------------------
 def upload_file_to_drive(uploaded_file, model_name):
-    """Upload a test report file to the External Reports folder."""
+    """Upload file to External Reports folder."""
     if not uploaded_file:
         st.warning("Please select a file before uploading.")
         return
@@ -108,20 +108,22 @@ def upload_file_to_drive(uploaded_file, model_name):
         resumable=True
     )
 
-    drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields="id",
-        supportsAllDrives=True
-    ).execute()
-
-    st.success(f"✅ File '{new_filename}' uploaded successfully to Google Drive!")
+    try:
+        drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id",
+            supportsAllDrives=True
+        ).execute()
+        st.success(f"✅ File '{new_filename}' uploaded successfully!")
+    except Exception as e:
+        st.error(f"⚠️ Upload failed: {e}")
 
 # ------------------------------------------------------------
 # 📄 List Uploaded Reports
 # ------------------------------------------------------------
 def list_uploaded_reports():
-    """List all uploaded external test reports."""
+    """List all uploaded files from External Reports."""
     results = drive_service.files().list(
         q=f"'{external_reports_id}' in parents and trashed=false",
         fields="files(id, name, mimeType, modifiedTime)",
@@ -139,10 +141,10 @@ st.caption("Upload and view external test reports linked to pump models")
 
 st.divider()
 
-# Load Model List
+# Load model names
 models = get_model_list()
 if not models:
-    st.warning("⚠️ Unable to fetch pump models. Please check Google Drive or Excel file name.")
+    st.warning("⚠️ Unable to fetch model list from Google Drive.")
 else:
     selected_model = st.selectbox("Select Pump Model", models)
     c1, c2, c3 = st.columns(3)
@@ -155,10 +157,10 @@ else:
     uploaded_file = st.file_uploader("Choose file", type=["pdf", "jpg", "jpeg"])
 
     if st.button("Upload to Google Drive"):
-        if selected_model and uploaded_file:
+        if uploaded_file and selected_model:
             upload_file_to_drive(uploaded_file, selected_model)
         else:
-            st.warning("Please select a model and upload a file.")
+            st.warning("Please select a model and upload a file first.")
 
     st.divider()
     st.subheader("📚 View Uploaded Reports")
@@ -171,7 +173,8 @@ else:
             st.markdown(f"**📄 {f['name']}**  \n*Modified:* {f['modifiedTime'][:10]}")
             if "pdf" in f["mimeType"]:
                 st.markdown(
-                    f'<iframe src="https://drive.google.com/file/d/{f["id"]}/preview" width="100%" height="500"></iframe>',
+                    f'<iframe src="https://drive.google.com/file/d/{f["id"]}/preview" '
+                    f'width="100%" height="500"></iframe>',
                     unsafe_allow_html=True)
             elif "image" in f["mimeType"]:
                 st.image(f"https://drive.google.com/uc?id={f['id']}", use_container_width=True)
