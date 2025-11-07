@@ -22,16 +22,22 @@ drive_service = build("drive", "v3", credentials=creds)
 gc = gspread.authorize(creds)
 
 # ------------------------------------------------------------
-# 📂 CONFIGURATION
+# 📂 CONFIGURATION (Updated for Google Drive + Google Sheet)
 # ------------------------------------------------------------
-MAIN_FOLDER_ID = st.secrets["gdrive"]["folder_id"]  # "Testing-app-uploads"
-CALIB_FOLDER_NAME = "cal_certificates"
-SHEET_ID = "your_google_sheet_id_here"  # 🔹 Replace with your Instrument List Google Sheet ID
-SHEET_NAME = "Sheet1"
 
+# 🔸 Google Drive Setup
+MAIN_FOLDER_ID = st.secrets["gdrive"]["folder_id"]  # Folder ID for "Testing-app-uploads"
+CALIB_FOLDER_NAME = "cal_certificates"              # Subfolder containing calibration certificates
+
+# 🔸 Google Sheet Setup (Instrument List)
+SHEET_ID = "1NnQTg1ixlNTFpe7U3FRT49A_b9RI-gceiO2AVEV6lck"  # Your Instrument_List Sheet ID
+SHEET_NAME = "Sheet1"  # Sheet/tab name inside the Google Sheet
+
+# ------------------------------------------------------------
+# 🧭 PAGE UI HEADER
+# ------------------------------------------------------------
 st.title("🧰 Instrument Details")
 st.caption("Manage and view instrument details with calibration reports stored in Google Drive")
-
 st.divider()
 
 # ------------------------------------------------------------
