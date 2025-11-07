@@ -1,37 +1,30 @@
 # ============================================================
-# 🧾 Internal Test Reports Page (Personal Gmail + OAuth Login)
+# 🧾 Internal Test Reports Page (Service Account + Google Drive)
 # Author: Dhanush BK | Flow Oil Pumps Pvt. Ltd.
 # Purpose: Upload & view internal test reports (Google Drive API)
 # Storage: Google Drive (Testing-app-uploads/Internal Reports)
+# Updated: Streamlit Cloud compatible (no credentials.json needed)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import io
-import os
-import pickle
 from datetime import datetime
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
+from google.oauth2 import service_account
 
 # ------------------------------------------------------------
-# 🔐 Google Drive Authentication (OAuth)
+# 🔐 Google Drive Authentication using Streamlit Secrets
 # ------------------------------------------------------------
-# 👇 This scope allows access to both owned & shared files
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 def get_drive_service():
-    """Authenticate user with OAuth (personal Gmail login)"""
-    creds = None
-    if os.path.exists("token.pkl"):
-        with open("token.pkl", "rb") as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open("token.pkl", "wb") as token:
-            pickle.dump(creds, token)
+    """Authenticate to Google Drive using service account credentials."""
+    SERVICE_ACCOUNT_INFO = st.secrets["gcp_service_account"]
+    creds = service_account.Credentials.from_service_account_info(
+        SERVICE_ACCOUNT_INFO, scopes=SCOPES
+    )
     return build("drive", "v3", credentials=creds)
 
 drive_service = get_drive_service()
@@ -39,7 +32,7 @@ drive_service = get_drive_service()
 # ------------------------------------------------------------
 # 🔍 Folder References
 # ------------------------------------------------------------
-PARENT_FOLDER_ID = "1fBbVWcyCrvwF5pWZhXsjRYfVEKNYtV0q"   # <-- Main shared folder ID
+PARENT_FOLDER_ID = st.secrets["gdrive"]["folder_id"]  # main shared folder
 SUBFOLDER_NAME = "Internal Reports"
 MODEL_FILE_NAME = "List of models for page8.xlsx"
 
@@ -62,7 +55,7 @@ def get_subfolder_id(parent_id, subfolder_name):
     ).execute()
     files = results.get("files", [])
     if not files:
-        st.error(f"🚫 Folder '{subfolder_name}' not found inside 'Testing-app-uploads'.")
+        st.error(f"🚫 Folder '{subfolder_name}' not found inside shared Drive folder.")
         return None
     return files[0]["id"]
 
@@ -77,7 +70,7 @@ def get_model_list():
     results = drive_service.files().list(
         q=query,
         spaces="drive",
-        fields="files(id)",
+        fields="files(id, name)",
         includeItemsFromAllDrives=True,
         supportsAllDrives=True,
     ).execute()
@@ -96,7 +89,7 @@ def get_model_list():
 # 📤 Upload File to Drive
 # ------------------------------------------------------------
 def upload_file_to_drive(uploaded_file, model_name):
-    """Upload report to Internal Reports folder."""
+    """Upload internal report to Drive."""
     if not internal_reports_id:
         st.error("❌ Internal Reports folder missing — cannot upload.")
         return
@@ -121,7 +114,7 @@ def upload_file_to_drive(uploaded_file, model_name):
 # 📄 List Uploaded Reports
 # ------------------------------------------------------------
 def list_uploaded_reports():
-    """List uploaded test reports."""
+    """List all uploaded test reports."""
     if not internal_reports_id:
         return []
     results = drive_service.files().list(
@@ -136,13 +129,9 @@ def list_uploaded_reports():
 # ------------------------------------------------------------
 # 🖥️ Streamlit UI
 # ------------------------------------------------------------
+st.set_page_config(page_title="Internal Test Reports", page_icon="📄", layout="wide")
 st.title("📄 Internal Test Reports")
 st.caption("Upload and view internal test reports linked to pump models")
-
-if st.button("🔄 Re-login with another Google Account"):
-    if os.path.exists("token.pkl"):
-        os.remove("token.pkl")
-    st.experimental_rerun()
 
 st.divider()
 
@@ -181,7 +170,8 @@ else:
             if "pdf" in f["mimeType"]:
                 st.markdown(
                     f'<iframe src="https://drive.google.com/file/d/{f["id"]}/preview" width="100%" height="500"></iframe>',
-                    unsafe_allow_html=True)
+                    unsafe_allow_html=True,
+                )
             elif "image" in f["mimeType"]:
                 st.image(f"https://drive.google.com/uc?id={f['id']}", use_container_width=True)
             st.markdown(f"[🔗 Open in Drive](https://drive.google.com/file/d/{f['id']}/view?usp=sharing)")
